@@ -35,7 +35,8 @@ Next.js 14 (App Router), Supabase (Postgres), Drizzle ORM, Tailwind. Matches the
 ## Phase 0 — Prerequisites 🧑
 
 Before any agent work starts, confirm the human has:
-- [ ] A Google Cloud account with billing-free project creation available
+- [ ] A Google Cloud account with billing-free project
+ creation available
 - [ ] Access to the Supabase project (connection string ready)
 - [ ] A production HTTPS domain for OAuth callbacks (required for Production publishing — `localhost` and non-HTTPS URIs aren't accepted)
 - [ ] A published privacy policy and terms of service page (required for OAuth verification)
