@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Leaderboard | Steps Challenge',
@@ -115,13 +116,36 @@ export default async function LeaderboardPage() {
       {/* CTA */}
       <section className="cta-section">
         <p className="cta-text">Want to join the leaderboard?</p>
-        <a
-          id="connect-google-health-btn"
-          href={authorizeUrl}
-          className="cta-btn"
-        >
-          Connect Google Health
-        </a>
+        <div className="cta-platform-grid">
+          {/* Android / Google Health */}
+          <div className="platform-card">
+            <div className="platform-icon">🤖</div>
+            <h3 className="platform-name">Android</h3>
+            <p className="platform-desc">Syncs automatically via Google Health — just connect once.</p>
+            <a
+              id="connect-google-health-btn"
+              href={authorizeUrl}
+              className="cta-btn"
+            >
+              Connect Google Health
+            </a>
+          </div>
+
+          {/* iOS / Apple Health */}
+          <div className="platform-card">
+            <div className="platform-icon">🍎</div>
+            <h3 className="platform-name">iPhone (iOS)</h3>
+            <p className="platform-desc">Sign in with Google, then set up a daily Apple Health Shortcut.</p>
+            <a
+              id="connect-ios-btn"
+              href={authorizeUrl}
+              className="cta-btn cta-btn-ios"
+            >
+              Connect &amp; Set Up Shortcut
+            </a>
+          </div>
+        </div>
+
         <button
           id="copy-invite-link-btn"
           className="copy-btn"

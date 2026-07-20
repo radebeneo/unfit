@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { db } from '@/db';
 import { users, oauthTokens } from '@/db/schema';
 import { encrypt } from '@/lib/crypto';
-import { eq } from 'drizzle-orm';
+import { signSession, SESSION_COOKIE } from '@/lib/session';
+import { eq, sql } from 'drizzle-orm';
 
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 
@@ -97,18 +99,36 @@ export async function GET(request: Request) {
 
   const userInfo: GoogleUserInfo = await userInfoRes.json();
 
-  // ── Upsert user ────────────────────────────────────────────────────────────
+  // ── Upsert user (generate shortcut_token on first login) ─────────────────
+  // On conflict (re-auth): keep existing shortcut_token via COALESCE so iOS
+  // users don't lose their Shortcut binding when they re-authorize.
+  const newToken = randomBytes(24).toString('hex');
   const [user] = await db
     .insert(users)
     .values({
       email: userInfo.email,
       name: userInfo.name ?? null,
+      shortcutToken: newToken,
     })
     .onConflictDoUpdate({
       target: users.email,
-      set: { name: userInfo.name ?? null },
+      set: {
+        name: userInfo.name ?? null,
+        // COALESCE keeps the old token if one already exists
+        shortcutToken: sql`COALESCE(${users.shortcutToken}, ${newToken})`,
+      },
     })
     .returning();
+
+  // Safety: if token is still null (pre-existing user row with no token), set one now
+  if (!user.shortcutToken) {
+    const fallbackToken = randomBytes(24).toString('hex');
+    await db
+      .update(users)
+      .set({ shortcutToken: fallbackToken })
+      .where(eq(users.id, user.id));
+    user.shortcutToken = fallbackToken;
+  }
 
   // ── Encrypt refresh token and upsert tokens ────────────────────────────────
   const refreshTokenEncrypted = tokenData.refresh_token
@@ -146,12 +166,28 @@ export async function GET(request: Request) {
       },
     });
 
-  // ── Clear state cookie and redirect to leaderboard ────────────────────────
-  const response = NextResponse.redirect(new URL('/leaderboard', request.url));
+  // ── Sign session JWT ───────────────────────────────────────────────────────
+  const sessionToken = await signSession({
+    userId: user.id,
+    email: user.email,
+    name: user.name ?? null,
+  });
+
+  // ── Clear state cookie, set session, redirect to /welcome ─────────────────
+  const response = NextResponse.redirect(new URL('/welcome', request.url));
+
   response.cookies.set('oauth_state', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     maxAge: 0,
+    path: '/',
+  });
+
+  response.cookies.set(SESSION_COOKIE, sessionToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
   });
 

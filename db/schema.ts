@@ -15,6 +15,9 @@ export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: text('email').notNull().unique(),
   name: text('name'),
+  // Personal bearer token for the iOS Apple Health Shortcut.
+  // Generated once on first OAuth login; never rotates unless the user requests it.
+  shortcutToken: text('shortcut_token').unique(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

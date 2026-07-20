@@ -39,7 +39,7 @@ export default function Home() {
             <span className="feature-icon">🤖</span>
             <div>
               <strong>Automatic Daily Sync</strong>
-              <p>Your steps are pulled once a day in the background.</p>
+              <p>Android: steps pulled automatically from Google Health. iOS: a one-time Shortcut setup.</p>
             </div>
           </li>
         </ul>
@@ -59,7 +59,7 @@ export default function Home() {
         </div>
 
         <p className="home-note">
-          Android (Health Connect) &amp; iOS (Apple Health) supported via Google Health.
+          🤖 Android via Google Health &nbsp;•&nbsp; 🍎 iOS via Apple Health Shortcut
         </p>
       </div>
     </main>
