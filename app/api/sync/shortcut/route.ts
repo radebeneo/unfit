@@ -114,10 +114,7 @@ export async function POST(request: NextRequest) {
   const steps = extractSteps(body.steps);
   if (isNaN(steps) || steps < 0 || steps > 200_000) {
     return NextResponse.json(
-      {
-        error: 'steps must be a number between 0 and 200,000.',
-        received: JSON.stringify(body.steps).slice(0, 200),
-      },
+      { error: 'steps must be a number between 0 and 200,000.' },
       { status: 400 }
     );
   }
