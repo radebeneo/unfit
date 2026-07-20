@@ -77,6 +77,15 @@ export async function POST(request: NextRequest) {
   function extractSteps(raw: unknown): number {
     if (typeof raw === 'number') return Math.round(raw);
     if (typeof raw === 'string') {
+      // iOS Shortcuts serializes a Health Sample list as newline-separated numbers
+      if (raw.includes('\n')) {
+        const total = raw
+          .split('\n')
+          .map((s) => Number(s.trim()))
+          .filter((n) => !isNaN(n))
+          .reduce((sum, n) => sum + n, 0);
+        return Math.round(total);
+      }
       const n = Number(raw.trim());
       return isNaN(n) ? NaN : Math.round(n);
     }
