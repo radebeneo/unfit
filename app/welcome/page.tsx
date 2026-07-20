@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { verifySession, SESSION_COOKIE } from '@/lib/session';
@@ -40,9 +40,12 @@ export default async function WelcomePage() {
   const displayName = user.name ?? user.email.split('@')[0];
   const token = user.shortcutToken ?? '';
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  // Derive the base URL from the incoming request so this always points
+  // to the correct host in both local dev and production.
+  const headersList = await headers();
+  const host = headersList.get('x-forwarded-host') ?? headersList.get('host') ?? 'localhost:3000';
+  const proto = headersList.get('x-forwarded-proto') ?? 'http';
+  const appUrl = `${proto}://${host}`;
 
   const syncEndpoint = `${appUrl}/api/sync/shortcut`;
 
