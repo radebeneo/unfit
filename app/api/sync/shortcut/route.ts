@@ -110,9 +110,18 @@ export async function POST(request: NextRequest) {
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[shortcut-sync] Unhandled error:', message);
+    // Serialize full error including postgres.js-specific fields
+    const detail: Record<string, unknown> = { message };
+    if (err && typeof err === 'object') {
+      for (const key of ['code', 'detail', 'hint', 'severity', 'routine', 'where'] as const) {
+        if (key in (err as Record<string, unknown>)) {
+          detail[key] = (err as Record<string, unknown>)[key];
+        }
+      }
+    }
+    console.error('[shortcut-sync] Unhandled error:', JSON.stringify(detail));
     return NextResponse.json(
-      { error: 'Internal server error', detail: message },
+      { error: 'Internal server error', detail },
       { status: 500 }
     );
   }
