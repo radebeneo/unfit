@@ -69,17 +69,46 @@ export async function POST(request: NextRequest) {
     date = yesterday.toISOString().split('T')[0];
   }
 
-  // Validate steps — iOS Shortcuts may send numbers as strings
-  const rawSteps = body.steps;
-  const steps =
-    typeof rawSteps === 'number'
-      ? Math.round(rawSteps)
-      : typeof rawSteps === 'string'
-        ? Math.round(Number(rawSteps))
-        : NaN;
+  // Parse steps — iOS Shortcuts can send health data in many formats:
+  //   • a plain number:          8432
+  //   • a numeric string:        "8432"
+  //   • a HealthKit sample obj:  { value: 8432 } / { count: 8432 } / { quantity: 8432 }
+  //   • an array of samples:     [{ value: 100 }, { value: 200 }, ...]  → summed
+  function extractSteps(raw: unknown): number {
+    if (typeof raw === 'number') return Math.round(raw);
+    if (typeof raw === 'string') {
+      const n = Number(raw.trim());
+      return isNaN(n) ? NaN : Math.round(n);
+    }
+    if (Array.isArray(raw)) {
+      // Sum numeric values from each sample
+      const total = raw.reduce((sum, item) => {
+        const v = extractSteps(item);
+        return isNaN(v) ? sum : sum + v;
+      }, 0);
+      return total;
+    }
+    if (raw && typeof raw === 'object') {
+      // Try common HealthKit property names
+      const obj = raw as Record<string, unknown>;
+      for (const key of ['value', 'count', 'quantity', 'sum', 'steps']) {
+        if (typeof obj[key] === 'number') return Math.round(obj[key] as number);
+        if (typeof obj[key] === 'string') {
+          const n = Number((obj[key] as string).trim());
+          if (!isNaN(n)) return Math.round(n);
+        }
+      }
+    }
+    return NaN;
+  }
+
+  const steps = extractSteps(body.steps);
   if (isNaN(steps) || steps < 0 || steps > 200_000) {
     return NextResponse.json(
-      { error: 'steps must be a number between 0 and 200,000.' },
+      {
+        error: 'steps must be a number between 0 and 200,000.',
+        received: JSON.stringify(body.steps).slice(0, 200),
+      },
       { status: 400 }
     );
   }
