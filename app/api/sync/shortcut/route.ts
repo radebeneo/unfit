@@ -69,8 +69,14 @@ export async function POST(request: NextRequest) {
     date = yesterday.toISOString().split('T')[0];
   }
 
-  // Validate steps
-  const steps = typeof body.steps === 'number' ? Math.round(body.steps) : NaN;
+  // Validate steps — iOS Shortcuts may send numbers as strings
+  const rawSteps = body.steps;
+  const steps =
+    typeof rawSteps === 'number'
+      ? Math.round(rawSteps)
+      : typeof rawSteps === 'string'
+        ? Math.round(Number(rawSteps))
+        : NaN;
   if (isNaN(steps) || steps < 0 || steps > 200_000) {
     return NextResponse.json(
       { error: 'steps must be a number between 0 and 200,000.' },
