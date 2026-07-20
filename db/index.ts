@@ -20,7 +20,14 @@ export function getDb() {
   }
 
   // Disable prefetch — not supported in Supabase Transaction pool mode
-  const client = postgres(process.env.DATABASE_URL, { prepare: false });
+  // SSL is required by Supabase in production (pooler rejects unencrypted connections)
+  const client = postgres(process.env.DATABASE_URL, {
+    prepare: false,
+    ssl: process.env.NODE_ENV === 'production' ? 'require' : undefined,
+    connect_timeout: 15,
+    idle_timeout: 20,
+    max_lifetime: 1800,
+  });
   _db = drizzle(client, { schema });
   return _db;
 }
