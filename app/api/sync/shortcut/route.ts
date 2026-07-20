@@ -17,6 +17,7 @@ import { eq } from 'drizzle-orm';
  * Returns: { ok: true, date, steps, name }
  */
 export async function POST(request: NextRequest) {
+  try {
   // ── Auth ───────────────────────────────────────────────────────────────────
   const authHeader = request.headers.get('authorization') ?? '';
   const token = authHeader.startsWith('Bearer ')
@@ -106,4 +107,13 @@ export async function POST(request: NextRequest) {
     steps,
     name: user.name ?? user.email.split('@')[0],
   });
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[shortcut-sync] Unhandled error:', message);
+    return NextResponse.json(
+      { error: 'Internal server error', detail: message },
+      { status: 500 }
+    );
+  }
 }
